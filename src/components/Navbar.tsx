@@ -4,6 +4,7 @@ import { UserRound } from "lucide-react";
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Destinations", href: "/destinations" },
+  { label: "Add Destination", href: "/add-destination" },
   { label: "My Bookings", href: "/bookings" },
   { label: "Admin", href: "/admin" },
 ];
@@ -18,9 +19,8 @@ export default function Navbar() {
             <li key={link.label}>
               <Link
                 href={link.href}
-                className={`text-sm font-medium transition-colors hover:text-cyan-600 ${
-                  link.href === "/" ? "text-cyan-600" : "text-gray-800"
-                }`}
+                className={`text-sm font-medium transition-colors hover:text-cyan-600 ${link.href === "/" ? "text-cyan-600" : "text-gray-800"
+                  }`}
               >
                 {link.label}
               </Link>
