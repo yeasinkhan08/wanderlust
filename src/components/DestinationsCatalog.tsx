@@ -5,74 +5,12 @@ import { Playfair_Display } from "next/font/google";
 import { ChevronDown, SlidersHorizontal, RotateCcw } from "lucide-react";
 import { Destination } from "@/types/destination";
 import DestinationCard from "@/components/DestinationCard";
+import { defaultMockDestinations } from "@/data/destinations";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
-
-export const defaultMockDestinations: Destination[] = [
-  {
-    _id: "mock-1",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Beach",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image6.png",
-    rating: 4.5,
-  },
-  {
-    _id: "mock-2",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Beach",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image5.png",
-    rating: 4.5,
-  },
-  {
-    _id: "mock-3",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Mountain",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image4.png",
-    rating: 4.5,
-  },
-  {
-    _id: "mock-4",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Cultural",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image3.png",
-    rating: 4.5,
-  },
-  {
-    _id: "mock-5",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Beach",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image2.png",
-    rating: 4.5,
-  },
-  {
-    _id: "mock-6",
-    destinationName: "Bali Paradise",
-    country: "Nepal",
-    category: "Adventure",
-    price: "2700",
-    duration: "7 Days/6 Nights",
-    imageUrl: "/images/destinations/image1.png",
-    rating: 4.5,
-  },
-];
 
 const availableCategories = [
   "Beach",

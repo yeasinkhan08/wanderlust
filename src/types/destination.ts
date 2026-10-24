@@ -10,4 +10,7 @@ export interface Destination {
   imageUrl: string;
   description?: string;
   rating?: number | string;
+  reviewsCount?: number | string;
+  highlights?: string[];
+  overview?: string;
 }
