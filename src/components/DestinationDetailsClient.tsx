@@ -47,7 +47,8 @@ export default function DestinationDetailsClient({
   initialDestination,
 }: DestinationDetailsClientProps) {
   const router = useRouter();
-  const [destination, setDestination] = React.useState<Destination>(initialDestination);
+  const [destination, setDestination] =
+    React.useState<Destination>(initialDestination);
 
   // Fallback image handling
   const defaultHeroImage = "/cta-airplane-bg.jpg";
@@ -120,12 +121,12 @@ export default function DestinationDetailsClient({
     destination.highlights && destination.highlights.length > 0
       ? destination.highlights
       : [
-          "Luxury beachfront accommodation",
-          "Traditional Balinese spa treatment",
-          "Sunrise trek to Mount Batur",
-          "Visit Uluwatu Temple at sunset",
-          "Private beach dinner experience",
-        ];
+        "Luxury beachfront accommodation",
+        "Traditional Balinese spa treatment",
+        "Sunrise trek to Mount Batur",
+        "Visit Uluwatu Temple at sunset",
+        "Private beach dinner experience",
+      ];
 
   // Divide highlights into two columns
   const firstColHighlights = highlightsList.slice(0, 3);
@@ -135,7 +136,7 @@ export default function DestinationDetailsClient({
   const handleEditChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({ ...prev, [name]: value }));
@@ -145,6 +146,22 @@ export default function DestinationDetailsClient({
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
+
+    const destId = destination._id || destination.id;
+
+    try {
+      const res = await fetch(`http://localhost:8000/destination/${destId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editFormData),
+      });
+      const data = await res.json();
+      console.log("PATCH response:", data);
+    } catch (err) {
+      console.error("Backend update error:", err);
+    }
 
     const updated: Destination = {
       ...destination,
@@ -157,22 +174,6 @@ export default function DestinationDetailsClient({
       imageUrl: editFormData.imageUrl,
       description: editFormData.description,
     };
-
-    // Attempt to persist to MongoDB backend if destination has valid 24-char ObjectId
-    const destId = destination._id || destination.id;
-    if (destId && /^[0-9a-fA-F]{24}$/.test(destId)) {
-      try {
-        await fetch(`http://localhost:8000/destination/${destId}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(updated),
-        });
-      } catch (err) {
-        console.warn("Backend update failed, persisting state locally:", err);
-      }
-    }
 
     setDestination(updated);
     if (editFormData.imageUrl) {
@@ -280,7 +281,9 @@ export default function DestinationDetailsClient({
             {/* Country Badge */}
             <div className="flex items-center gap-1.5 text-xs sm:text-sm font-normal text-gray-500">
               <MapPin className="h-4 w-4 text-[#15a1bf] shrink-0" />
-              <span className="capitalize">{destination.country || "Indonesia"}</span>
+              <span className="capitalize">
+                {destination.country || "Indonesia"}
+              </span>
             </div>
 
             {/* Destination Name */}
@@ -296,13 +299,17 @@ export default function DestinationDetailsClient({
               <div className="flex items-center gap-1.5">
                 <Star className="h-4 w-4 fill-emerald-600 text-emerald-600 shrink-0" />
                 <span className="font-bold text-gray-900">{ratingDisplay}</span>
-                <span className="text-gray-500 font-normal">({reviewsDisplay})</span>
+                <span className="text-gray-500 font-normal">
+                  ({reviewsDisplay})
+                </span>
               </div>
 
               {/* Duration */}
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 text-gray-600 shrink-0" />
-                <span className="font-bold text-gray-900">{durationDisplay}</span>
+                <span className="font-bold text-gray-900">
+                  {durationDisplay}
+                </span>
               </div>
             </div>
 
@@ -451,8 +458,8 @@ export default function DestinationDetailsClient({
                 <p className="text-sm text-gray-600 mb-6">
                   Thank you for booking your trip to{" "}
                   <strong>{destination.destinationName}</strong> on{" "}
-                  <strong>{departureDate}</strong>. A confirmation email has been
-                  sent.
+                  <strong>{departureDate}</strong>. A confirmation email has
+                  been sent.
                 </p>
                 <button
                   onClick={() => {
@@ -570,7 +577,10 @@ export default function DestinationDetailsClient({
               Make changes to the travel package details below
             </p>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4 sm:space-y-5">
+            <form
+              onSubmit={handleEditSubmit}
+              className="space-y-4 sm:space-y-5"
+            >
               {/* Destination Name (Direct input without label, matching design) */}
               <div>
                 <input
