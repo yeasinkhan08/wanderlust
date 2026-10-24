@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   Users,
   AlertCircle,
+  Save,
+  ChevronDown,
 } from "lucide-react";
 import { Destination } from "@/types/destination";
 
@@ -24,6 +26,18 @@ const playfair = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
 });
+
+const categories = [
+  "Beach",
+  "Mountain",
+  "Adventure",
+  "Cultural",
+  "City Tour",
+  "Wildlife & Safari",
+  "Cruise",
+  "Luxury",
+  "Romantic",
+];
 
 interface DestinationDetailsClientProps {
   initialDestination: Destination;
@@ -55,7 +69,6 @@ export default function DestinationDetailsClient({
   // Booking states
   const [departureDate, setDepartureDate] = React.useState<string>(() => {
     if (destination.departureDate) {
-      // Check if it's in YYYY-MM-DD format and convert to MM/DD/YYYY
       const parts = destination.departureDate.split("-");
       if (parts.length === 3 && parts[0].length === 4) {
         return `${parts[1]}/${parts[2]}/${parts[0]}`;
@@ -71,9 +84,11 @@ export default function DestinationDetailsClient({
 
   // Edit states
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [isUpdating, setIsUpdating] = React.useState(false);
   const [editFormData, setEditFormData] = React.useState({
     destinationName: destination.destinationName || "",
     country: destination.country || "",
+    category: destination.category || "Beach",
     price: String(destination.price || ""),
     duration: destination.duration || "",
     departureDate: destination.departureDate || "",
@@ -116,31 +131,59 @@ export default function DestinationDetailsClient({
   const firstColHighlights = highlightsList.slice(0, 3);
   const secondColHighlights = highlightsList.slice(3);
 
-  // Handle Edit Save
+  // Handle Edit Field Change
   const handleEditChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  // Handle Edit Submit
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUpdating(true);
+
     const updated: Destination = {
       ...destination,
       destinationName: editFormData.destinationName,
       country: editFormData.country,
+      category: editFormData.category,
       price: editFormData.price,
       duration: editFormData.duration,
       departureDate: editFormData.departureDate,
       imageUrl: editFormData.imageUrl,
       description: editFormData.description,
     };
+
+    // Attempt to persist to MongoDB backend if destination has valid 24-char ObjectId
+    const destId = destination._id || destination.id;
+    if (destId && /^[0-9a-fA-F]{24}$/.test(destId)) {
+      try {
+        await fetch(`http://localhost:8000/destination/${destId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updated),
+        });
+      } catch (err) {
+        console.warn("Backend update failed, persisting state locally:", err);
+      }
+    }
+
     setDestination(updated);
     if (editFormData.imageUrl) {
       setImgSrc(editFormData.imageUrl);
       setImgError(false);
     }
+    if (editFormData.departureDate) {
+      setDepartureDate(editFormData.departureDate);
+    }
+
+    setIsUpdating(false);
     setIsEditModalOpen(false);
     setEditSavedToast(true);
     setTimeout(() => setEditSavedToast(false), 3000);
@@ -150,10 +193,9 @@ export default function DestinationDetailsClient({
   const handleDeleteConfirm = async () => {
     setIsDeleting(true);
     try {
-      const destinationId = destination._id || destination.id;
-      if (destinationId) {
-        // Attempt DELETE if backend endpoint exists
-        await fetch(`http://localhost:8000/destination/${destinationId}`, {
+      const destId = destination._id || destination.id;
+      if (destId && /^[0-9a-fA-F]{24}$/.test(destId)) {
+        await fetch(`http://localhost:8000/destination/${destId}`, {
           method: "DELETE",
         }).catch(() => null);
       }
@@ -169,7 +211,7 @@ export default function DestinationDetailsClient({
       {/* Toast Notification */}
       {editSavedToast && (
         <div className="fixed top-20 right-6 z-50 flex items-center gap-2.5 bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 shadow-lg text-sm">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
           <span>Package details updated successfully!</span>
         </div>
       )}
@@ -194,6 +236,7 @@ export default function DestinationDetailsClient({
                 setEditFormData({
                   destinationName: destination.destinationName || "",
                   country: destination.country || "",
+                  category: destination.category || "Beach",
                   price: String(destination.price || ""),
                   duration: destination.duration || "",
                   departureDate: destination.departureDate || "",
@@ -503,139 +546,207 @@ export default function DestinationDetailsClient({
         </div>
       )}
 
-      {/* Edit Destination Modal */}
+      {/* Edit Destination Modal - Matches Provided Design Exactly */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-lg bg-white p-6 sm:p-8 shadow-2xl relative my-8">
+          <div className="w-full max-w-xl bg-white p-7 sm:p-9 shadow-2xl relative my-8">
+            {/* Close Icon */}
             <button
+              type="button"
               onClick={() => setIsEditModalOpen(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              aria-label="Close modal"
             >
               <X className="h-5 w-5" />
             </button>
 
-            <h3
-              className={`${playfair.className} text-2xl font-normal text-gray-900 mb-1`}
+            {/* Header */}
+            <h2
+              className={`${playfair.className} text-2xl sm:text-[26px] font-normal tracking-tight text-[#0c0b0b]`}
             >
-              Edit Travel Package
-            </h3>
-            <p className="text-xs text-gray-500 mb-5">
-              Update the details for this destination package.
+              Update Travel Package
+            </h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 mb-6">
+              Make changes to the travel package details below
             </p>
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            <form onSubmit={handleEditSubmit} className="space-y-4 sm:space-y-5">
+              {/* Destination Name (Direct input without label, matching design) */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Destination Name
-                </label>
                 <input
                   type="text"
                   name="destinationName"
                   value={editFormData.destinationName}
                   onChange={handleEditChange}
+                  placeholder="Bali Paradise"
                   required
-                  className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
+                  className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Country & Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label
+                    htmlFor="edit-country"
+                    className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                  >
                     Country
                   </label>
                   <input
                     type="text"
+                    id="edit-country"
                     name="country"
                     value={editFormData.country}
                     onChange={handleEditChange}
+                    placeholder="Indonesia"
                     required
-                    className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
+                    className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label
+                    htmlFor="edit-category"
+                    className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                  >
+                    Category
+                  </label>
+                  <div className="relative">
+                    <select
+                      id="edit-category"
+                      name="category"
+                      value={editFormData.category}
+                      onChange={handleEditChange}
+                      className="w-full appearance-none bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors pr-10 cursor-pointer"
+                    >
+                      {categories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Price (USD) & Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                <div>
+                  <label
+                    htmlFor="edit-price"
+                    className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                  >
                     Price (USD)
                   </label>
                   <input
                     type="text"
+                    id="edit-price"
                     name="price"
                     value={editFormData.price}
                     onChange={handleEditChange}
+                    placeholder="e.g., 1299"
                     required
-                    className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
+                    className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label
+                    htmlFor="edit-duration"
+                    className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                  >
                     Duration
                   </label>
                   <input
                     type="text"
+                    id="edit-duration"
                     name="duration"
                     value={editFormData.duration}
                     onChange={handleEditChange}
+                    placeholder="e.g., 7 Days/6 Nights"
                     required
-                    className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Departure Date
-                  </label>
-                  <input
-                    type="text"
-                    name="departureDate"
-                    value={editFormData.departureDate}
-                    onChange={handleEditChange}
-                    placeholder="MM/DD/YYYY"
-                    className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
+                    className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
+              {/* Departure Date */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label
+                  htmlFor="edit-departureDate"
+                  className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                >
+                  Departure Date
+                </label>
+                <input
+                  type="text"
+                  id="edit-departureDate"
+                  name="departureDate"
+                  value={editFormData.departureDate}
+                  onChange={handleEditChange}
+                  placeholder="mm/dd/yyyy"
+                  className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
+                />
+              </div>
+
+              {/* Image URL */}
+              <div>
+                <label
+                  htmlFor="edit-imageUrl"
+                  className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                >
                   Image URL
                 </label>
                 <input
                   type="url"
+                  id="edit-imageUrl"
                   name="imageUrl"
                   value={editFormData.imageUrl}
                   onChange={handleEditChange}
                   placeholder="https://example.com/image.jpg"
-                  className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none"
+                  className="w-full bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                 />
               </div>
 
+              {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Description / Overview
+                <label
+                  htmlFor="edit-description"
+                  className="block text-xs sm:text-sm font-semibold text-gray-900 mb-1.5"
+                >
+                  Description
                 </label>
                 <textarea
+                  id="edit-description"
                   name="description"
-                  rows={3}
+                  rows={4}
                   value={editFormData.description}
                   onChange={handleEditChange}
-                  className="w-full bg-[#f4f7f9] border border-transparent px-3.5 py-2 text-xs sm:text-sm text-gray-900 focus:bg-white focus:border-[#15a1bf] focus:outline-none resize-none"
+                  placeholder="Describe the travel experience..."
+                  className="w-full resize-none bg-[#f4f7f9] border border-transparent px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder-gray-400 focus:bg-white focus:border-[#15a1bf] focus:outline-none transition-colors"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="border border-gray-300 px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 border border-red-300 px-5 py-2.5 text-xs sm:text-sm font-medium text-red-500 hover:border-red-400 hover:bg-red-50 transition-colors cursor-pointer"
                 >
-                  Cancel
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                  <span>Cancel</span>
                 </button>
+
                 <button
                   type="submit"
-                  className="bg-[#15a1bf] hover:bg-[#0f8ea7] text-white px-5 py-2 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+                  disabled={isUpdating}
+                  className="inline-flex items-center gap-1.5 bg-[#15a1bf] px-5 py-2.5 text-xs sm:text-sm font-medium text-white hover:bg-[#0f8ea7] transition-colors cursor-pointer shadow-sm disabled:opacity-60"
                 >
-                  Save Changes
+                  <Save className="h-4 w-4 text-white" />
+                  <span>{isUpdating ? "Saving..." : "Save Changes"}</span>
                 </button>
               </div>
             </form>
