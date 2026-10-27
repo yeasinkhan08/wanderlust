@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { Playfair_Display } from "next/font/google";
-import { Mail, Lock, Eye } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -10,9 +13,44 @@ const playfair = Playfair_Display({
 });
 
 export default function LoginForm() {
+  const router = useRouter();
 
-const 
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
+  const handleEmailLogIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    setErrorMessage("");
+    setLoading(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+
+      const user = {
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+      };
+
+      const { data, error } = await authClient.signIn.email(user);
+
+      if (error) {
+        setErrorMessage(error.message || "Login failed. Please try again.");
+        return;
+      }
+
+      if (data) {
+        router.push("/");
+        router.refresh();
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrorMessage("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-[#f8fafc] px-4 py-12 sm:px-6 lg:px-8">
@@ -37,69 +75,91 @@ const
 
         {/* Login Card */}
         <div className="rounded-2xl border border-gray-100 bg-white p-7 shadow-[0_4px_24px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.03)] sm:p-9">
-          {/* Email Input */}
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="mb-1.5 block text-sm font-semibold text-gray-800"
-            >
-              Email Address
-            </label>
-
-            <div className="relative flex items-center">
-              <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" />
-
-              <input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="Enter your email"
-                className="w-full rounded-lg border border-gray-200/90 bg-[#f8fafc] py-2.5 pl-10 pr-4 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-cyan-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-600/15"
-              />
-            </div>
-          </div>
-
-          {/* Password Input */}
-          <div>
-            <div className="mb-1.5 flex items-center justify-between">
+          <form onSubmit={handleEmailLogIn}>
+            {/* Email Input */}
+            <div className="mb-4">
               <label
-                htmlFor="password"
-                className="block text-sm font-semibold text-gray-800"
+                htmlFor="email"
+                className="mb-1.5 block text-sm font-semibold text-gray-800"
               >
-                Password
+                Email Address
               </label>
+
+              <div className="relative flex items-center">
+                <Mail className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" />
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  autoComplete="email"
+                  required
+                  className="w-full rounded-lg border border-gray-200/90 bg-[#f8fafc] py-2.5 pl-10 pr-4 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-cyan-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-600/15"
+                />
+              </div>
             </div>
 
-            <div className="relative flex items-center">
-              <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" />
+            {/* Password Input */}
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-semibold text-gray-800"
+                >
+                  Password
+                </label>
+              </div>
 
-              <input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="Enter your password"
-                className="w-full rounded-lg border border-gray-200/90 bg-[#f8fafc] py-2.5 pl-10 pr-10 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-cyan-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-600/15"
-              />
+              <div className="relative flex items-center">
+                <Lock className="pointer-events-none absolute left-3.5 h-4 w-4 text-gray-400" />
 
-              <button
-                type="button"
-                className="absolute right-3.5 text-gray-400 transition-colors hover:text-gray-600"
-                aria-label="Show password"
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-lg border border-gray-200/90 bg-[#f8fafc] py-2.5 pl-10 pr-10 text-sm text-gray-900 transition-all placeholder:text-gray-400 focus:border-cyan-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-600/15"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 text-gray-400 transition-colors hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <p
+                role="alert"
+                className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600"
               >
-                <Eye className="h-4 w-4" />
+                {errorMessage}
+              </p>
+            )}
+
+            {/* Sign In Button */}
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full cursor-pointer rounded-lg bg-[#0891b2] px-4 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-[#0e7490] hover:shadow active:bg-[#155e75] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </div>
-          </div>
-
-          {/* Sign In Button */}
-          <div className="pt-6">
-            <button
-              type="button"
-              className="w-full cursor-pointer rounded-lg bg-[#0891b2] px-4 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-[#0e7490] hover:shadow active:bg-[#155e75]"
-            >
-              Sign In
-            </button>
-          </div>
+          </form>
 
           {/* Divider */}
           <div className="relative my-6 text-center">
@@ -115,6 +175,21 @@ const
           {/* Google Button */}
           <button
             type="button"
+            onClick={async () => {
+              try {
+                const { error } = await authClient.signIn.social({
+                  provider: "google",
+                  callbackURL: "/",
+                });
+
+                if (error) {
+                  setErrorMessage(error.message || "Google sign-in failed.");
+                }
+              } catch (error) {
+                console.error("Google sign-in error:", error);
+                setErrorMessage("Unable to sign in with Google.");
+              }
+            }}
             className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-xs transition-colors hover:border-gray-300 hover:bg-gray-50"
           >
             {/* Google Icon */}
